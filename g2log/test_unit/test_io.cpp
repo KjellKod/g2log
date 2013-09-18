@@ -104,24 +104,54 @@ namespace  {
 	const std::string t_warning2 = "test WARNING yello";
 }
 
+
+TEST(CompileTest, LogWithIf) {
+  
+  std::string content;
+  {
+     RestoreLogger logger;
+
+     if( !t_info.empty()) {
+       LOGF(INFO, "Hello 1");
+    }
+     else {
+       LOGF(INFO, "Bye 1");
+     }
+
+     if(t_info.empty())
+       LOG(INFO) << "Hello 2";
+     else
+       LOG(INFO) << "Bye 2";
+    
+     logger.reset();
+     content = readFileToText(logger.logFile());
+   }
+   EXPECT_TRUE(verifyContent(content, "Hello 1"));
+   EXPECT_FALSE(verifyContent(content, "Bye 1"));
+   EXPECT_FALSE(verifyContent(content, "Hello 2"));
+   EXPECT_TRUE(verifyContent(content, "Bye 2"));
+}
+
+
+
+
 // printf-type log
 TEST(LogTest, LOG_F)
-{	
-	std::string file_content;
-	{
-		RestoreLogger logger;
-		std::cout << "logfilename: " << logger.logFile() << std::flush << std::endl;
-
-		LOGF(INFO, std::string(t_info + "%d").c_str(), 123);
-		LOGF(DEBUG, std::string(t_debug + "%f").c_str(), 1.123456);
-		LOGF(WARNING, std::string(t_warning + "%s").c_str(), "yello");
-		logger.reset(); // force flush of logger
-		file_content = readFileToText(logger.logFile());
-		SCOPED_TRACE("LOG_INFO");  // Scope exit be prepared for destructor failure
-	}
-	ASSERT_TRUE(verifyContent(file_content, t_info2));
-	ASSERT_TRUE(verifyContent(file_content, t_debug2));
-	ASSERT_TRUE(verifyContent(file_content, t_warning2));
+{
+   std::string file_content;
+   {
+	RestoreLogger logger;
+	std::cout << "logfilename: " << logger.logFile() << std::flush << std::endl;
+	LOGF(INFO, std::string(t_info + "%d").c_str(), 123);
+	LOGF(DEBUG, std::string(t_debug + "%f").c_str(), 1.123456);
+	LOGF(WARNING, std::string(t_warning + "%s").c_str(), "yello");
+	logger.reset(); // force flush of logger
+	file_content = readFileToText(logger.logFile());
+	SCOPED_TRACE("LOG_INFO");  // Scope exit be prepared for destructor failure
+   }
+   ASSERT_TRUE(verifyContent(file_content, t_info2));
+   ASSERT_TRUE(verifyContent(file_content, t_debug2));
+   ASSERT_TRUE(verifyContent(file_content, t_warning2));
 }
 
 
