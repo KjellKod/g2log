@@ -111,12 +111,11 @@ TEST(CompileTest, LogWithIf) {
   {
      RestoreLogger logger;
 
-     if( !t_info.empty()) {
+     if( !t_info.empty()) 
        LOGF(INFO, "Hello 1");
-    }
-     else {
+     else 
        LOGF(INFO, "Bye 1");
-     }
+     
 
      if(t_info.empty())
        LOG(INFO) << "Hello 2";

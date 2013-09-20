@@ -37,11 +37,12 @@ template<typename Moveable>
 struct PretendToBeCopyable
 {
   explicit PretendToBeCopyable(Moveable&& m)  : move_only_(std::move(m)) {}
+  PretendToBeCopyable(const PretendToBeCopyable& p)	: move_only_(std::move(p.move_only_)){} 
   PretendToBeCopyable(PretendToBeCopyable& p)	: move_only_(std::move(p.move_only_)){} 
   PretendToBeCopyable(PretendToBeCopyable&& p) : move_only_(std::move(p.move_only_)){} // = default; // so far only on gcc
   void operator()() { move_only_(); } // execute
 private:
-  Moveable move_only_;
+  mutable Moveable move_only_;
 };
 
 
