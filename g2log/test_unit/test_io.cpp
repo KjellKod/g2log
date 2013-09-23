@@ -12,47 +12,56 @@
 #include <fstream>
 #include <cstdio>
 
+#ifdef __clang__
+#warning "Unit tests for Clang are disabled due to Clang's lack of C++11 features (future) on Linux"
+#endif
 
+#ifndef __clang__
 namespace
 {
-	const int k_wait_time = 5; // 5s wait between LOG/CHECK FATAL till we say it's too long time
-	const std::string log_directory = "./";
+   const int k_wait_time = 5; // 5s wait between LOG/CHECK FATAL till we say it's too long time
+   const std::string log_directory = "./";
 
-	bool verifyContent(const std::string &total_text,std::string msg_to_find)
-	{
-		std::string content(total_text);
-		size_t location = content.find(msg_to_find);
-		return (location != std::string::npos);
-	}
+   bool verifyContent(const std::string &total_text,std::string msg_to_find)
+   {
+      std::string content(total_text);
+      size_t location = content.find(msg_to_find);
+      return (location != std::string::npos);
+   }
 
-	std::string readFileToText(std::string filename)
-	{
-		std::ifstream in;
-		in.open(filename.c_str(),std::ios_base::in);
-		if(!in.is_open())
-		{
-			return ""; // error just return empty string - test will 'fault'
-		}
-		std::ostringstream oss;
-		oss << in.rdbuf();
-		std::string content(oss.str());
-		return content;
-	}
+	
+   std::string readFileToText(std::string filename)
+   {
+      std::ifstream in;
+      in.open(filename.c_str(),std::ios_base::in);
+      if(!in.is_open())
+      {
+         return ""; // error just return empty string - test will 'fault'
+      }
+      std::ostringstream oss;
+      oss << in.rdbuf();
+      std::string content(oss.str());
+      return content;
+   }
 } // end anonymous namespace
+
+
+
+
+
 
 // RAII temporarily replace of logger
 // and restoration of original logger at scope end
 struct RestoreLogger
 {
-	RestoreLogger();
-	~RestoreLogger();
-	void reset();
+   RestoreLogger();
+   ~RestoreLogger();
+   void reset();
 
-	std::unique_ptr<g2LogWorker> logger_;
-	std::string logFile(){return log_file_;}
+   std::unique_ptr<g2LogWorker> logger_;
+   std::string logFile(){return log_file_;}
 private:
-	std::string log_file_;
-
+   std::string log_file_;
 };
 
 RestoreLogger::RestoreLogger()
@@ -83,30 +92,29 @@ void RestoreLogger::reset()
 // LOG
 TEST(LOGTest, LOG)
 {
-	std::string file_content;
-	{
-		RestoreLogger logger;
-		LOG(INFO) << "test LOG(INFO)";
-		logger.reset(); // force flush of logger
-		file_content = readFileToText(logger.logFile());
-		SCOPED_TRACE("LOG_INFO");  // Scope exit be prepared for destructor failure
-	}
-	ASSERT_TRUE(verifyContent(file_content, "test LOG(INFO)"));
+   std::string file_content;
+   {
+   RestoreLogger logger;
+   LOG(INFO) << "test LOG(INFO)";
+   logger.reset(); // force flush of logger
+   file_content = readFileToText(logger.logFile());
+   SCOPED_TRACE("LOG_INFO");  // Scope exit be prepared for destructor failure
+   }
+   ASSERT_TRUE(verifyContent(file_content, "test LOG(INFO)"));
 }
 
 
 namespace  { 
-	const std::string t_info = "test INFO ";
-	const std::string t_info2 = "test INFO 123";
-	const std::string t_debug = "test DEBUG ";
-	const std::string t_debug2 = "test DEBUG 1.123456";
-	const std::string t_warning = "test WARNING ";
-	const std::string t_warning2 = "test WARNING yello";
+   const std::string t_info = "test INFO ";
+   const std::string t_info2 = "test INFO 123";
+   const std::string t_debug = "test DEBUG ";
+   const std::string t_debug2 = "test DEBUG 1.123456";
+   const std::string t_warning = "test WARNING ";
+   const std::string t_warning2 = "test WARNING yello";
 }
 
 
 TEST(CompileTest, LogWithIf) {
-  
   std::string content;
   {
      RestoreLogger logger;
@@ -431,3 +439,4 @@ TEST(CHECK, CHECK_ThatWontThrow)
 	ASSERT_FALSE(verifyContent(file_content, msg2));
 }
 
+#endif // clang

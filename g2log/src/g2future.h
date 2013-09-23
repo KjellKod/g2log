@@ -45,6 +45,7 @@ private:
   mutable Moveable move_only_;
 };
 
+#ifndef __clang__  // no/bad packaged_task future support for Clang on non-OSX platforms
 
 // Generic helper function to avoid repeating the steps for managing
 // asynchronous task job (by active object) that returns a future results
@@ -67,5 +68,7 @@ std::future<typename std::result_of<Func()>::type> spawn_task(Func func, kjellko
   worker->send(PretendToBeCopyable<task_type>(std::move(task))); 
   return std::move(result);
 }
+#endif // clang
+
 } // end namespace g2
 #endif // G2FUTURE_H

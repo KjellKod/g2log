@@ -14,8 +14,6 @@
 # the performance and unit tests creation can be enabled by switching their
 # OPTIONs from OFF to ON --- See below at around line 110
 
-# 2012-05-29: justthread is no longer necessary on Windows (vs2011) and
-#             linux (gcc4.7.1)
 
 
 # WINDOWS == README: Example how to setup environment + running an example
@@ -36,6 +34,18 @@
 #    cmake ..    # create makefiles in g2log/build directory
 #    make    # link active_object, g2log and example code to get an "example" executable
 #     ./g2log-FATAL-example
+#
+#
+#   Clang on Linux (untried on OSX)
+#   On Linux Clang does not yet fully support C++11 (only on OSX?)
+#   For that reason all functionality that involves asynch or future or packaged_task
+#       are disabled. Apart from that g2log works the same. If you want the full functionality 
+#       then please check the code for #ifndef __clang
+#   To compile it:
+#   cmake -DCMAKE_CXX_COMPILER=clang++ ..
+#   You can use:   "VERBOSE=1 make" to make sure that you have all setup correctly on Clang
+#   "make -j"                        is my prefferred compilation option otherwise. 
+#
 # ============================================================================
 
 cmake_minimum_required (VERSION 2.8)
@@ -70,7 +80,7 @@ IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
    MESSAGE("")
    MESSAGE("cmake for Clang ")
   set(PLATFORM_LINK_LIBRIES rt)
-  set(CMAKE_CXX_FLAGS  " -Wall -std=c++11 -pthread -stdlib=libc++  -Wunused -D_GLIBCXX_USE_NANOSLEEP")
+  set(CMAKE_CXX_FLAGS  " -g -Wall -std=c++11 -pthread -stdlib=libc++  -Wunused -D_GLIBCXX_USE_NANOSLEEP")
   set(SRC_PLATFORM_SPECIFIC ${LOG_SRC}/crashhandler_unix.cpp)
 
 ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
@@ -137,12 +147,12 @@ ENDIF ()
    # ===============================================================================================
    # 1. a simple test example 'g2log-FATAL-example'
    option (USE_SIMPLE_EXAMPLE
-          "Create  simple binaries that runs a few LOG calls" ON)
+          "Create  simple binaries that runs a few LOG calls. Will exit with a fatal operation" ON)
 
 
    # 2. performance test (average + worst case) for KjellKod's g2log
    option (USE_G2LOG_PERFORMANCE
-         "Create performance tests for g2log" ON)
+         "Create performance tests for g2log" OFF)
 
    # 3. performance test for Google's glog
    option (USE_GOOGLE_GLOG_PERFORMANCE
@@ -150,7 +160,7 @@ ENDIF ()
 
    # 4. unit test for g2log
    option (USE_G2LOG_UNIT_TEST
-          "Create unit test for g2log (remember to unzip Google's gtest framework, available at g2log/3rdParty/gtest)" ON)
+          "Create unit test for g2log (remember to unzip Google's gtest framework, available at g2log/3rdParty/gtest)" OFF)
 
 
 
@@ -224,7 +234,8 @@ ENDIF ()
 
 
 
-   # 4. create the unit tests for g2log --- ONLY TESTED THE UNIT TEST ON LINUX
+   # 4. create the unit tests for g2log --- ONLY TESTED THE UNIT TEST ON LINUX.
+   #    NOT CLANG SUPPORTED!!!
    if (USE_G2LOG_UNIT_TEST)
      MESSAGE(" g2log unit testing option ON")
     # SETUP for GTEST

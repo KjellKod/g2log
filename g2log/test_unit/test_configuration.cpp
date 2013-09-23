@@ -16,6 +16,9 @@
 #include "g2time.h"
 #include "g2future.h"
 
+
+
+
 TEST(Configuration, LOG)
 { // ref: http://www.cplusplus.com/reference/clibrary/ctime/strftime/
   // ref: http://en.cppreference.com/w/cpp/io/manip/put_time
@@ -45,6 +48,14 @@ catch(...)
 ASSERT_TRUE(true); // no exception. all good
 }
 
+
+
+#ifdef __clang__
+#warning "Unit tests for Clang are disabled due to Clang's lack of C++11 features (future) on Linux"
+#endif
+
+
+#ifndef __clang__
 std::future<std::string> sillyFutureReturn()
 {
   std::packaged_task<std::string()> task([](){return std::string("Hello Future");}); // wrap the function
@@ -189,7 +200,7 @@ TEST(Yalla, Testar)
   ASSERT_TRUE(true);
 }
 
-
+#endif // clang
 
 
 

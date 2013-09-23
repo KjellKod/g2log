@@ -20,10 +20,22 @@ const std::string path_to_log_file = "/tmp/";
 
 namespace example_fatal
 {
+
+
+
 void killWithContractFailureIfNonEqual(int first, int second)
 {
   CHECK(first == second) << "Test to see if contract works: onetwothree: " << 123 << ". This should be at the end of the log, and will exit this example";
 }
+
+
+void definiteKillWithDivideByZero(int one, int two) {
+  LOG(WARNING) << "The operations below will generate SIGFPE";
+  int zero = (two - 2*one);
+  int divide = (one / zero);
+  LOG(WARNING) << "this message should really not be shown. SIGFPE should be triggered by division by zero, div: " << divide;
+}
+
 
 // on Ubunti this caused get a compiler warning with gcc4.6
 // from gcc 4.7.2 (at least) it causes a crash (as expected)
@@ -34,7 +46,7 @@ void tryToKillWithIllegalPrintout()
   std::cout << "************************************************************\n\n" << std::endl << std::flush;
   std::this_thread::sleep_for(std::chrono::seconds(1));
   const std::string logging = "logging";
-  LOGF(DEBUG, "ILLEGAL PRINTF_SYNTAX EXAMPLE. WILL GENERATE compiler warning.\n\nbadly formatted message:[Printf-type %s is the number 1 for many %s]", logging.c_str());
+  LOGF(DEBUG, "ILLEGAL PRINTF_SYNTAX EXAMPLE. WILL GENERATE compiler warning.\nbadly formatted message:[Printf-type %d %s %d is %s the number 1 for many %s]", 1, logging.c_str());
 }
 } // example fatal
 
@@ -46,12 +58,14 @@ int main(int argc, char** argv)
 
   g2LogWorker logger(argv[0], path_to_log_file);
   g2::initializeLogging(&logger);
+#ifndef __clang__
   std::future<std::string> log_file_name = logger.logFileName();
   std::cout << "*** This is an example of g2log " << std::endl;
   std::cout << "*** It WILL exit by a FATAL trigger in the end" << std::endl;
   std::cout << "*** Please see the generated log and compare to " << std::endl;
   std::cout << "***    the code at g2log/test_example/main.cpp" << std::endl;
   std::cout << "\n*** Log file: [" << log_file_name.get() << "]\n\n" << std::endl;
+#endif
 
   LOGF(INFO, "Hi log %d", 123);
   LOG(INFO) << "Test SLOG INFO";
@@ -83,7 +97,8 @@ int main(int argc, char** argv)
   // ----- the 'illegalPrinout' call below
   example_fatal::tryToKillWithIllegalPrintout();
 
-
+  int one= 1, two=2;
+  example_fatal::definiteKillWithDivideByZero(one, two);
 
   CHECK(1<2) << "SHOULD NOT SEE THIS MESSAGE"; // non-failure contract
 
