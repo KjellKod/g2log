@@ -43,6 +43,13 @@ namespace
       std::string content(oss.str());
       return content;
    }
+
+    g2::internal::FatalMessage g_latest_fatal_message = {"dummy", g2::internal::FatalMessage::kReasonFatal, -1};
+    void MockFatalCall (g2::internal::FatalMessage fatalMsg) {
+       g_latest_fatal_message = fatalMsg;
+    }
+
+
 } // end anonymous namespace
 
 
@@ -67,8 +74,9 @@ private:
 RestoreLogger::RestoreLogger()
 	: logger_(new g2LogWorker("UNIT_TEST_LOGGER", log_directory))
 {
+        g_latest_fatal_message.message_ = {""};
 	g2::initializeLogging(logger_.get());
-	g2::internal::changeFatalInitHandlerForUnitTesting();
+	g2::internal::changeFatalInitHandlerForUnitTesting( MockFatalCall );
 
 	std::future<std::string> filename(logger_->logFileName());
 	EXPECT_TRUE(filename.valid());
@@ -90,17 +98,26 @@ void RestoreLogger::reset()
 
 
 // LOG
-TEST(LOGTest, LOG)
+TEST(Initialization, No_Logger_Initialized___Expecting_LOG_calls_to_be_Still_OK) 
 {
-   std::string file_content;
-   {
-   RestoreLogger logger;
-   LOG(INFO) << "test LOG(INFO)";
-   logger.reset(); // force flush of logger
-   file_content = readFileToText(logger.logFile());
-   SCOPED_TRACE("LOG_INFO");  // Scope exit be prepared for destructor failure
+   std::string err_msg1 = "Hey. I am not instantiated but I still should not crash. (I am g2logger)";
+   std::string err_msg2_ignored = "This uninitialized message should be ignored";
+   try {
+      LOG(INFO) << err_msg1;
+      LOG(INFO) << err_msg2_ignored;
+
+   } catch (std::exception& e) {
+      ADD_FAILURE() << "Should never have thrown even if it is not instantiated";
    }
-   ASSERT_TRUE(verifyContent(file_content, "test LOG(INFO)"));
+
+   RestoreLogger logger;
+   std::string good_msg1 = "This message will pull in also the uninitialized_call message";
+   LOG(INFO) << good_msg1;
+   logger.reset();
+   auto content =  readFileToText(logger.logFile());
+   ASSERT_TRUE(verifyContent(content, err_msg1)) << "Content: [" << content << "]";
+   ASSERT_FALSE(verifyContent(content, err_msg2_ignored)) << "Content: [" << content << "]";
+   ASSERT_TRUE(verifyContent(content, good_msg1)) << "Content: [" << content << "]";
 }
 
 
@@ -148,7 +165,7 @@ TEST(LogTest, LOG_F)
    std::string file_content;
    {
 	RestoreLogger logger;
-	std::cout << "logfilename: " << logger.logFile() << std::flush << std::endl;
+	//std::cout << "logfilename: " << logger.logFile() << std::flush << std::endl;
 	LOGF(INFO, std::string(t_info + "%d").c_str(), 123);
 	LOGF(DEBUG, std::string(t_debug + "%f").c_str(), 1.123456);
 	LOGF(WARNING, std::string(t_warning + "%s").c_str(), "yello");
@@ -216,128 +233,90 @@ TEST(LogTest, LOG_IF)
 TEST(LogTest, LOGF__FATAL)
 {
 	RestoreLogger logger;
-	try
-	{
-		LOGF(FATAL, "This message should throw %d",0);
-	}
-	catch (std::exception const &e)
-	{
-		logger.reset();
-		std::string file_content = readFileToText(logger.logFile());
-		std::cerr << file_content << std::endl << std::flush;
-		if(verifyContent(e.what(), "EXIT trigger caused by ") &&
-			verifyContent(file_content, "FATAL") &&
-			verifyContent(file_content, "This message should throw"))
+        LOGF(FATAL, "This message is fatal %d",0);
+        logger.reset();
+         if(verifyContent(g_latest_fatal_message.message_, "EXIT trigger caused by ") &&
+			verifyContent(g_latest_fatal_message.message_, "FATAL") &&
+			verifyContent(g_latest_fatal_message.message_, "This message is fatal"))
 		{
 			SUCCEED();
 			return;
 		}
 		else
 		{
-			ADD_FAILURE() << "Didn't throw exception as expected";
+			ADD_FAILURE() << "Didn't get the expected FATAL call";
 		}
-	}
-	ADD_FAILURE() << "Didn't throw exception at ALL";
 }
 
 
 TEST(LogTest, LOG_FATAL)
 {
 	RestoreLogger logger;
-	try
+        ASSERT_EQ(g_latest_fatal_message.message_, "");
+        LOG(FATAL) << "This message is fatal";
+	if(verifyContent(g_latest_fatal_message.message_, "EXIT trigger caused by ") &&
+	   verifyContent(g_latest_fatal_message.message_, "FATAL") &&
+	    verifyContent(g_latest_fatal_message.message_, "This message is fatal"))
 	{
-		LOG(FATAL) << "This message should throw";
+		SUCCEED();
+		return;
 	}
-	catch (std::exception const &e)
+	else
 	{
-		logger.reset();
-		std::string file_content = readFileToText(logger.logFile());
-		if(verifyContent(e.what(), "EXIT trigger caused by ") &&
-			verifyContent(file_content, "FATAL") &&
-			verifyContent(file_content, "This message should throw"))
-		{
-			SUCCEED();
-			return;
-		}
-		else
-		{
-			ADD_FAILURE() << "Didn't throw exception as expected";
-		}
+		ADD_FAILURE() << "Did not get fatal call as expected";
 	}
-	ADD_FAILURE() << "Didn't throw exception at ALL";
 }
 
 
 TEST(LogTest, LOGF_IF__FATAL)
 {
 	RestoreLogger logger;
-	try
+        LOGF_IF(FATAL, (2<3), "This message%sis fatal"," ");
+        logger.reset();
+	std::string file_content = readFileToText(logger.logFile());
+	if(verifyContent(g_latest_fatal_message.message_, "EXIT trigger caused by ") &&
+           verifyContent(g_latest_fatal_message.message_, "FATAL") &&
+	   verifyContent(g_latest_fatal_message.message_, "This message is fatal"))
 	{
-		LOGF_IF(FATAL, (2<3), "This message%sshould throw"," ");
+	   SUCCEED();
+	   return;
 	}
-	catch (std::exception const &e)
+	else
 	{
-		logger.reset();
-		std::string file_content = readFileToText(logger.logFile());
-		if(verifyContent(e.what(), "EXIT trigger caused by ") &&
-			verifyContent(file_content, "FATAL") &&
-			verifyContent(file_content, "This message should throw"))
-		{
-			SUCCEED();
-			return;
-		}
-		else
-		{
-			ADD_FAILURE() << "Didn't throw exception as expected";
-		}
+	   ADD_FAILURE() << "Did not get fatal call as expected";
 	}
-	ADD_FAILURE() << "Didn't throw exception at ALL";
+
 }
 
 
 TEST(LogTest, LOG_IF__FATAL)
 {
 	RestoreLogger logger;
-	try
+        ASSERT_EQ(g_latest_fatal_message.message_, "");
+        LOG_IF(WARNING, (0 != t_info.compare(t_info))) << "This message should NOT be written";
+	LOG_IF(FATAL, (0 != t_info.compare(t_info2))) << "This message is fatal";
+        logger.reset();
+	if(verifyContent(g_latest_fatal_message.message_, "EXIT trigger caused by ") &&
+		verifyContent(g_latest_fatal_message.message_, "FATAL") &&
+		verifyContent(g_latest_fatal_message.message_, "This message is fatal") &&
+		(false == verifyContent(g_latest_fatal_message.message_, "This message should NOT be written")))
 	{
-		LOG_IF(WARNING, (0 != t_info.compare(t_info))) << "This message should NOT be written";
-		LOG_IF(FATAL, (0 != t_info.compare(t_info2))) << "This message should throw";
+		SUCCEED();
+		return;
 	}
-	catch (std::exception const &e)
+	else
 	{
-		logger.reset();
-		std::string file_content = readFileToText(logger.logFile());
-		if(verifyContent(e.what(), "EXIT trigger caused by ") &&
-			verifyContent(file_content, "FATAL") &&
-			verifyContent(file_content, "This message should throw") &&
-			(false == verifyContent(file_content, "This message should NOT be written")))
-		{
-			SUCCEED();
-			return;
-		}
-		else
-		{
-			ADD_FAILURE() << "Didn't throw exception as expected";
-		}
+		ADD_FAILURE() << "Did not get fatal call as expected";
 	}
-	ADD_FAILURE() << "Didn't throw exception at ALL";
+
 }
 
 TEST(LogTest, LOG_IF__FATAL__NO_THROW)
 {
 	RestoreLogger logger;
-	try
-	{
-		LOG_IF(FATAL, (2>3)) << "This message%sshould NOT throw";
-	}
-	catch (std::exception const &e)
-	{
-		std::cerr << e.what() << std::endl;
-		logger.reset();
-		ADD_FAILURE() << "Didn't throw exception as expected";
-	}
-	logger.reset();
-	SUCCEED();
+        ASSERT_EQ(g_latest_fatal_message.message_, "");
+        LOG_IF(FATAL, (2>3)) << "This message%sshould NOT throw";
+	ASSERT_EQ(g_latest_fatal_message.message_, "");
 }
 
 
@@ -345,22 +324,19 @@ TEST(LogTest, LOG_IF__FATAL__NO_THROW)
 TEST(CheckTest, CHECK_F__thisWILL_PrintErrorMsg)
 {
 	RestoreLogger logger;
-	try
+        ASSERT_EQ(g_latest_fatal_message.message_, "");
+	CHECK(1 == 2);
+	logger.reset();
+	if(verifyContent(g_latest_fatal_message.message_, "EXIT trigger caused by ") &&
+		verifyContent(g_latest_fatal_message.message_, "FATAL"))
 	{
-		CHECK(1 == 2);
+		SUCCEED();
+		return;
 	}
-	catch (std::exception const &e)
+	else
 	{
-		logger.reset();
-		std::string file_content = readFileToText(logger.logFile());
-		if(verifyContent(e.what(), "EXIT trigger caused by ") &&
-			verifyContent(file_content, "FATAL"))
-		{
-			SUCCEED();
-			return;
-		}
+		ADD_FAILURE() << "Did not get fatal call as expected";
 	}
-	ADD_FAILURE() << "Didn't throw exception as expected";
 }
 
 
@@ -371,23 +347,16 @@ TEST(CHECK_F_Test, CHECK_F__thisWILL_PrintErrorMsg)
 	std::string msg2 = "This message is added to throw message and log";
 	std::string arg1 = "message";
 	std::string arg2 = "log";
-	try
+        CHECK_F(1 >= 2, msg.c_str(), arg1.c_str(), arg2.c_str());
+	logger.reset();
+	if(verifyContent(g_latest_fatal_message.message_, "EXIT trigger caused by ") &&
+	   verifyContent(g_latest_fatal_message.message_, "FATAL") &&
+	   verifyContent(g_latest_fatal_message.message_ , msg2))
 	{
-		CHECK_F(1 >= 2, msg.c_str(), arg1.c_str(), arg2.c_str());
+	   SUCCEED();
+	   return;
 	}
-	catch (std::exception const &e)
-	{
-		logger.reset();
-		std::string file_content = readFileToText(logger.logFile());
-		if(verifyContent(e.what(), "EXIT trigger caused by ") &&
-			verifyContent(file_content, "FATAL") &&
-			verifyContent(file_content, msg2))
-		{
-			SUCCEED();
-			return;
-		}
-	}
-	ADD_FAILURE() << "Didn't throw exception as expected";
+	ADD_FAILURE() << "Did not get fatal call as expected";
 }
 
 TEST(CHECK_Test, CHECK__thisWILL_PrintErrorMsg)
@@ -397,23 +366,17 @@ TEST(CHECK_Test, CHECK__thisWILL_PrintErrorMsg)
 	std::string msg2 = "This message is added to throw message and log";
 	std::string arg1 = "message";
 	std::string arg2 = "log";
-	try
+        CHECK(1 >= 2) << msg2;
+	logger.reset();
+	if(verifyContent(g_latest_fatal_message.message_, "EXIT trigger caused by ") &&
+	   verifyContent(g_latest_fatal_message.message_, "FATAL") &&
+	   verifyContent(g_latest_fatal_message.message_, msg2))
 	{
-		CHECK(1 >= 2) << msg2;
+	   SUCCEED();
+	   return;
 	}
-	catch (std::exception const &e)
-	{
-		logger.reset();
-		std::string file_content = readFileToText(logger.logFile());
-		if(verifyContent(e.what(), "EXIT trigger caused by ") &&
-			verifyContent(file_content, "FATAL") &&
-			verifyContent(file_content, msg2))
-		{
-			SUCCEED();
-			return;
-		}
-	}
-	ADD_FAILURE() << "Didn't throw exception as expected";
+	
+	ADD_FAILURE() << "Did not get fatal call as expected";
 }
 
 
@@ -424,19 +387,10 @@ TEST(CHECK, CHECK_ThatWontThrow)
 	std::string msg2 = "This message should never appear in the log";
 	std::string arg1 = "message";
 	std::string arg2 = "log";
-	try
-	{
-		CHECK(1 == 1);
-		CHECK_F(1==1, msg.c_str(), "message", "log");
-	}
-	catch (std::exception const &e)
-	{
-		std::cerr << e.what() << std::endl;
-		ADD_FAILURE() << "Should never have thrown";
-	}
-
-	std::string file_content = readFileToText(logger.logFile());
-	ASSERT_FALSE(verifyContent(file_content, msg2));
+        CHECK(1 == 1);
+	CHECK_F(1==1, msg.c_str(), "message", "log");
+	ASSERT_FALSE(verifyContent(g_latest_fatal_message.message_, msg2));
+	ASSERT_EQ(g_latest_fatal_message.message_, ""); // just to be obvious
 }
 
 #endif // clang

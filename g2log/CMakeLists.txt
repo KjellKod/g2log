@@ -134,7 +134,7 @@ ENDIF ()
    target_link_libraries(lib_g2logger lib_activeobject)
 
 
-
+ 
    # ===============================================================================================
    # OPTIONS: Turn OFF the ones that is of no interest to you
    # ---- by default all is OFF: except 'g2log-FATAL-example -----
@@ -144,6 +144,9 @@ ENDIF ()
    #
    #       2) The unit test were tested windows/linux,. but must be unzipped
    #          before it can be "cmake'd" and compiled --- leaving it as OFF for now
+   #
+   #  You can always turn the options on without changing the CMakeLists.txt :
+   #    example: cmake -DUSE_SIMPLE_EXAMPLE=ON -DUSE_G2LOG_UNIT_TEST=ON ..
    # ===============================================================================================
    # 1. a simple test example 'g2log-FATAL-example'
    option (USE_SIMPLE_EXAMPLE
@@ -247,21 +250,23 @@ ENDIF ()
       enable_testing(true)
 
 
-      add_executable(g2log-unit_test ../test_main/test_main.cpp ${DIR_UNIT_TEST}/test_io.cpp 
-                    ${DIR_UNIT_TEST}/test_configuration.cpp)
+      add_executable(g2log-unit_test ../test_main/test_main.cpp ${DIR_UNIT_TEST}/test_io.cpp)
       set_target_properties(g2log-unit_test PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_TR1_TUPLE=0")
       set_target_properties(g2log-unit_test PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_RTTI=0")
       set_target_properties(g2log-unit_test PROPERTIES COMPILE_FLAGS "-isystem -pthread ")
-           
       target_link_libraries(g2log-unit_test lib_activeobject lib_g2logger gtest_170_lib ${PLATFORM_LINK_LIBRIES})
+         
+      add_executable(g2log-unit_test_exploratory ../test_main/test_main.cpp ${DIR_UNIT_TEST}/test_exploratory.cpp)
+      set_target_properties(g2log-unit_test_exploratory PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_TR1_TUPLE=0")
+      set_target_properties(g2log-unit_test_exploratory PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_RTTI=0")
+      set_target_properties(g2log-unit_test_exploratory PROPERTIES COMPILE_FLAGS "-isystem -pthread ")
+      target_link_libraries(g2log-unit_test_exploratory lib_activeobject lib_g2logger gtest_170_lib ${PLATFORM_LINK_LIBRIES})
 
 
       add_executable(g2log-unit_test_filechange ${DIR_UNIT_TEST}/test_filechange.cpp)
       set_target_properties(g2log-unit_test_filechange PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_TR1_TUPLE=0")
       set_target_properties(g2log-unit_test_filechange PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_RTTI=0")
-
-      target_link_libraries(g2log-unit_test_filechange lib_activeobject lib_g2logger 
-                                gtest_170_lib ${PLATFORM_LINK_LIBRIES})
+      target_link_libraries(g2log-unit_test_filechange lib_activeobject lib_g2logger gtest_170_lib ${PLATFORM_LINK_LIBRIES})
    endif (USE_G2LOG_UNIT_TEST)
 
 

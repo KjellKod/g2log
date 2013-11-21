@@ -31,19 +31,16 @@
 #include <signal.h>
 #include <thread>
 
-namespace g2
-{
-namespace constants
-{
-const int kMaxMessageSize = 2048;
-const std::string kTruncatedWarningText = "[...truncated...]";
-}
-namespace internal
-{
-static g2LogWorker* g_logger_instance = nullptr; // instantiated and OWNED somewhere else (main)
-static std::mutex g_logging_init_mutex;
-bool isLoggingInitialized(){return g_logger_instance != nullptr; }
+namespace {
+   std::once_flag g_initialize_flag;
+   g2LogWorker* g_logger_instance = nullptr; // instantiated and OWNED somewhere else (main)
+   std::mutex g_logging_init_mutex;
 
+   std::string g_first_unintialized_msg;
+   std::once_flag g_set_first_uninitialized_flag;
+   std::once_flag g_save_first_unintialized_flag;
+   
+   
 /** thanks to: http://www.cplusplus.com/reference/string/string/find_last_of/
 * Splits string at the last '/' or '\\' separator
 * example: "/mnt/something/else.cpp" --> "else.cpp"
@@ -56,30 +53,59 @@ std::string splitFileName(const std::string& str)
   return str.substr(found+1);
 }
 
-} // end namespace g2::internal
+   const int kMaxMessageSize = 2048;
+   const std::string kTruncatedWarningText = "[...truncated...]";
 
 
-void initializeLogging(g2LogWorker *bgworker)
-{
-  static bool once_only_signalhandler = false;
-  std::lock_guard<std::mutex> lock(internal::g_logging_init_mutex);
-  CHECK(!internal::isLoggingInitialized());
-  CHECK(bgworker != nullptr);
-  internal::g_logger_instance = bgworker;
+   bool isLoggingInitialized(){return g_logger_instance != nullptr; }
 
-  if(false == once_only_signalhandler)
-  {
-    installSignalHandler();
-    once_only_signalhandler = true;
+   void saveToLogger(const g2::internal::LogEntry& log_entry) {
+      // Uninitialized messages are ignored but does not CHECK/crash the logger  
+      if (!isLoggingInitialized()) {
+         std::string err = {"LOGGER NOT INITIALIZED: " + log_entry};
+         std::call_once(g_set_first_uninitialized_flag, [&] { g_first_unintialized_msg = err;  });
+            // dump to std::err all the non-initialized logs
+            std::cerr << err << std::endl;
+            return;
+         }
+         // Save the first uninitialized message, if any     
+         std::call_once(g_save_first_unintialized_flag, [] {
+            if (!g_first_unintialized_msg.empty()) {
+               g_logger_instance->save(g_first_unintialized_msg);
+            }
+         });
+
+      g_logger_instance->save(log_entry);
   }
+} // anonymous
+
+
+namespace g2
+{
+
+
+// signalhandler and internal clock is only needed to install once
+// for unit testing purposes the initializeLogging might be called
+// several times... for all other practical use, it shouldn't!
+void initializeLogging(g2LogWorker *bgworker) {
+   std::call_once(g_initialize_flag, []() {
+      installSignalHandler();
+   });
+
+   std::lock_guard<std::mutex> lock(g_logging_init_mutex);
+   CHECK(!isLoggingInitialized());
+   CHECK(bgworker != nullptr);
+   g_logger_instance = bgworker;
 }
+
+
 
 g2LogWorker* shutDownLogging()
 {
-  std::lock_guard<std::mutex> lock(internal::g_logging_init_mutex);
-  CHECK(internal::isLoggingInitialized());
-  g2LogWorker *backup = internal::g_logger_instance;
-  internal::g_logger_instance = nullptr;
+  std::lock_guard<std::mutex> lock(g_logging_init_mutex);
+  CHECK(isLoggingInitialized());
+  g2LogWorker *backup = g_logger_instance;
+  g_logger_instance = nullptr;
   return backup;
 }
 
@@ -88,30 +114,35 @@ g2LogWorker* shutDownLogging()
 namespace internal
 {
 
-// The default, initial, handling to send a 'fatal' event to g2logworker
-// the caller will stay here, eternally, until the software is aborted
-void callFatalInitial(FatalMessage message)
-{
-  internal::g_logger_instance->fatal(message);
+
+/** Fatal call saved to logger. This will trigger SIGABRT or other fatal signal  
+  * to exit the program. After saving the fatal message the calling thread
+  * will sleep forever (i.e. until the background thread catches up, saves the fatal
+  * message and kills the software with the fatal signal.
+*/
+void fatalCallToLogger(FatalMessage message) {
+   if (!isLoggingInitialized()) {
+      std::ostringstream error;
+      error << "FATAL CALL but logger is NOT initialized\n"
+      << "SIGNAL: " << g2::internal::signalName(message.signal_id_)
+      << "\nMessage: \n" << message.message_ << std::flush;
+      std::cerr << error;
+      
+      internal::exitWithDefaultSignalHandler(message.signal_id_);
+   }
+   g_logger_instance->fatal(message);
+   while (true) {
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+   }
 }
+
 // By default this function pointer goes to \ref callFatalInitial;
-void (*g_fatal_to_g2logworker_function_ptr)(FatalMessage) = callFatalInitial;
-
-
-
-// Replaces the g2log.cpp/g_fatal_to_g2logworker_function_ptr through
-// g2log::changeFatalInitHandler
-void unitTestFatalInitHandler(g2::internal::FatalMessage fatal_message)
-{
-  assert(internal::g_logger_instance != nullptr);
-  internal::g_logger_instance->save(fatal_message.message_); // calling 'save' instead of 'fatal'
-  throw std::runtime_error(fatal_message.message_);
-}
+std::function<void(FatalMessage) > g_fatal_to_g2logworker_function_ptr = fatalCallToLogger; 
 
 // In case of unit-testing - a replacement 'fatal function' can be called
-void changeFatalInitHandlerForUnitTesting()
+void changeFatalInitHandlerForUnitTesting(std::function<void(FatalMessage) > fatal_call)
 {
-  g_fatal_to_g2logworker_function_ptr = unitTestFatalInitHandler;
+  g_fatal_to_g2logworker_function_ptr = fatal_call;
 }
 
 
@@ -164,13 +195,6 @@ LogMessage::~LogMessage()
   }
   log_entry_ += oss.str();
 
-  if(!isLoggingInitialized() )
-  {
-    std::cerr << "Did you forget to call g2::InitializeLogging(g2LogWorker*) in your main.cpp?" << std::endl;
-    std::cerr << log_entry_ << std::endl << std::flush;
-    throw std::runtime_error("Logger not initialized with g2::InitializeLogging(g2LogWorker*) for msg:\n" + log_entry_);
-  }
-
 
   if(fatal) // os_fatal is handled by crashhandlers
   {
@@ -181,7 +205,7 @@ LogMessage::~LogMessage()
       std::cerr  << log_entry_ << "\t*******  ]" << std::endl << std::flush;
     } // will send to worker
   }
-  internal::g_logger_instance->save(log_entry_); // message saved
+  saveToLogger(log_entry_); // message saved
 }
 
 
@@ -191,6 +215,14 @@ FatalMessage::FatalMessage(std::string message, FatalType type, int signal_id)
   , type_(type)
   , signal_id_(signal_id){}
 
+FatalMessage& FatalMessage::operator=(const FatalMessage& fatal_message) {
+   message_ = fatal_message.message_;
+   type_ = fatal_message.type_;
+   signal_id_ = fatal_message.signal_id_;
+   return *this;
+}
+
+
 // used to RAII trigger fatal message sending to g2LogWorker
 FatalTrigger::FatalTrigger(const FatalMessage &message)
   : message_(message){}
@@ -198,17 +230,16 @@ FatalTrigger::FatalTrigger(const FatalMessage &message)
 // at destruction, flushes fatal message to g2LogWorker
 FatalTrigger::~FatalTrigger()
 {
-  // either we will stay here eternally, or it's in unit-test mode
-  // then we throw a std::runtime_error (and never hit sleep)
+  // either we will stay here eternally, or it's in unit-test mode 
   g_fatal_to_g2logworker_function_ptr(message_);
-  while(true){std::this_thread::sleep_for(std::chrono::seconds(1));}
+
 }
 
 
 
 void LogMessage::messageSave(const char *printf_like_message, ...)
 {
-  char finished_message[constants::kMaxMessageSize];
+  char finished_message[kMaxMessageSize];
   va_list arglist;
   va_start(arglist, printf_like_message);
   const int nbrcharacters = vsnprintf(finished_message, sizeof(finished_message), printf_like_message, arglist);
@@ -218,9 +249,9 @@ void LogMessage::messageSave(const char *printf_like_message, ...)
     stream_ << "\n\tERROR LOG MSG NOTIFICATION: Failure to parse successfully the message";
     stream_ << '"' << printf_like_message << '"' << std::endl;
   }
-  else if (nbrcharacters > constants::kMaxMessageSize)
+  else if (nbrcharacters > kMaxMessageSize)
   {
-    stream_  << finished_message << constants::kTruncatedWarningText;
+    stream_  << finished_message << kTruncatedWarningText;
   }
   else
   {

@@ -25,6 +25,7 @@
 #include <iostream>
 #include <cstdarg>
 #include <chrono>
+#include <functional>
 
 class g2LogWorker;
 
@@ -161,13 +162,7 @@ g2LogWorker* shutDownLogging();
 namespace internal
 {
   typedef const std::string& LogEntry;
-
-/** By default the g2log will call g2LogWorker::fatal(...) which will abort() the system after flushing
- * the logs to file. This makes unit test of FATAL level cumbersome. A work around is to change the 'fatal call'
- * which can be done here */
-void changeFatalInitHandlerForUnitTesting();
-
-// TODO: LogEntry och FatalMessage borde kunna slås ihop till samma!
+      
 
 /** Trigger for flushing the message queue and exiting the application
     A thread that causes a FatalMessage will sleep forever until the
@@ -176,6 +171,9 @@ struct FatalMessage
 {
   enum FatalType {kReasonFatal, kReasonOS_FATAL_SIGNAL};
   FatalMessage(std::string message, FatalType type, int signal_id);
+  ~FatalMessage(){}; 
+  FatalMessage& operator=(const FatalMessage& fatal_message);
+
 
   std::string message_;
   FatalType type_;
@@ -188,7 +186,6 @@ struct FatalTrigger
   ~FatalTrigger();
   FatalMessage message_;
 };
-
 
 
 // Log message for 'printf-like' or stream logging, it's a temporary message constructions
@@ -236,6 +233,15 @@ public:
 protected:
   const std::string expression_;
 };
+
+
+ /** By default the g2log will call g2LogWorker::fatal(...) which will
+   * abort() the system after flushing the logs to file. This makes unit
+   * test of FATAL level cumbersome. A work around is to change the
+   * 'fatal call'  which can be done here 
+   * 
+   *  The bool return values in the fatal_call is whether or not the fatal_call should */
+  void changeFatalInitHandlerForUnitTesting(std::function<void(FatalMessage) > fatal_call);
 } // end namespace internal
 } // end namespace g2
 
