@@ -162,7 +162,7 @@ g2LogWorker* shutDownLogging();
 namespace internal
 {
   typedef const std::string& LogEntry;
-      
+  bool isLoggingInitialized();     
 
 /** Trigger for flushing the message queue and exiting the application
     A thread that causes a FatalMessage will sleep forever until the

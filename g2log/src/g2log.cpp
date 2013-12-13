@@ -57,11 +57,11 @@ std::string splitFileName(const std::string& str)
    const std::string kTruncatedWarningText = "[...truncated...]";
 
 
-   bool isLoggingInitialized(){return g_logger_instance != nullptr; }
+
 
    void saveToLogger(const g2::internal::LogEntry& log_entry) {
       // Uninitialized messages are ignored but does not CHECK/crash the logger  
-      if (!isLoggingInitialized()) {
+      if (!g2::internal::isLoggingInitialized()) {
          std::string err = {"LOGGER NOT INITIALIZED: " + log_entry};
          std::call_once(g_set_first_uninitialized_flag, [&] { g_first_unintialized_msg = err;  });
             // dump to std::err all the non-initialized logs
@@ -93,7 +93,7 @@ void initializeLogging(g2LogWorker *bgworker) {
    });
 
    std::lock_guard<std::mutex> lock(g_logging_init_mutex);
-   CHECK(!isLoggingInitialized());
+   CHECK(!internal::isLoggingInitialized());
    CHECK(bgworker != nullptr);
    g_logger_instance = bgworker;
 }
@@ -103,7 +103,7 @@ void initializeLogging(g2LogWorker *bgworker) {
 g2LogWorker* shutDownLogging()
 {
   std::lock_guard<std::mutex> lock(g_logging_init_mutex);
-  CHECK(isLoggingInitialized());
+  CHECK(internal::isLoggingInitialized());
   g2LogWorker *backup = g_logger_instance;
   g_logger_instance = nullptr;
   return backup;
@@ -113,6 +113,10 @@ g2LogWorker* shutDownLogging()
 
 namespace internal
 {
+
+   bool isLoggingInitialized() {
+      return g_logger_instance != nullptr; 
+   }
 
 
 /** Fatal call saved to logger. This will trigger SIGABRT or other fatal signal  
@@ -126,7 +130,7 @@ void fatalCallToLogger(FatalMessage message) {
       error << "FATAL CALL but logger is NOT initialized\n"
       << "SIGNAL: " << g2::internal::signalName(message.signal_id_)
       << "\nMessage: \n" << message.message_ << std::flush;
-      std::cerr << error;
+      std::cerr << error.str();
       
       internal::exitWithDefaultSignalHandler(message.signal_id_);
    }
