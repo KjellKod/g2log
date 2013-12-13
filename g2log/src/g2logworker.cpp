@@ -194,7 +194,7 @@ g2LogWorkerImpl::g2LogWorkerImpl(const std::string& log_prefix, const std::strin
   outptr_ = createLogFile(log_file_with_path_);
   if(!outptr_) {
     std::cerr << "Cannot write logfile to location, attempting current directory" << std::endl;
-    log_file_with_path_ = file_name;
+    log_file_with_path_ = "./" + file_name;
     outptr_ = createLogFile(log_file_with_path_);
   }
   assert((outptr_) && "cannot open log file at startup");
