@@ -15,11 +15,17 @@
 #endif
 
 
-#include <unistd.h>  // getpid,
+#include <unistd.h> 
 #include <execinfo.h>
-#include <ucontext.h>
+
 #include <cxxabi.h>
 #include <cstdlib>
+
+#ifdef __clang__
+#include <sys/ucontext.h>
+#else
+#include <ucontext.h>
+#endif
 
 namespace
 {
