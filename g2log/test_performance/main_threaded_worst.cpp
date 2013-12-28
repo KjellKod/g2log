@@ -55,15 +55,15 @@ int main(int argc, char** argv)
   const std::string  g_prefix_log_name = title + "-performance-" + thread_count_oss.str() + "threads-WORST_LOG";
   const std::string  g_measurement_dump= g_path + g_prefix_log_name + "_RESULT.txt";
   const std::string  g_measurement_bucket_dump= g_path + g_prefix_log_name + "_RESULT_buckets.txt";
-
-
+  const int64_t us_to_ms = 1000;
+  const int64_t us_to_s = 1000000;
 
 
   std::ostringstream oss;
   oss << "\n\n" << title << " performance " << number_of_threads << " threads WORST (PEAK) times\n";
   oss << "Each thread running #: " << g_loop << " * " << g_iterations << " iterations of log entries" << std::endl;  // worst mean case is about 10us per log entry
   const size_t xtra_margin = 2;
-  oss << "*** It can take som time. Please wait: Approximate wait time on MY PC was:  " << number_of_threads * (long long) (g_iterations * 10 * xtra_margin / 1000000 ) << " seconds" << std::endl;
+  oss << "*** It can take som time. Please wait: Approximate wait time on MY PC was:  " << number_of_threads * (int64_t)(g_iterations * 10 * xtra_margin / us_to_s) << " seconds" << std::endl;
   writeTextToFile(g_measurement_dump, oss.str(), kAppend);
   oss.str(""); // clear the stream
 
@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 #endif
 
   std::thread* threads = new std::thread[number_of_threads];
-  std::vector<long long>* threads_result = new std::vector<long long>[number_of_threads];
+  std::vector<int64_t>* threads_result = new std::vector<int64_t>[number_of_threads];
 
   // kiss: just loop, create threads, store them then join
   // could probably do this more elegant with lambdas
@@ -84,7 +84,7 @@ int main(int argc, char** argv)
     threads_result[idx].reserve(g_iterations);
   }
 
-  auto start_time = std::chrono::steady_clock::now();
+  auto start_time = std::chrono::high_resolution_clock::now();
   for(size_t idx = 0; idx < number_of_threads; ++idx)
   {
     std::ostringstream count;
@@ -98,7 +98,7 @@ int main(int argc, char** argv)
   {
     threads[idx].join();
   }
-  auto application_end_time = std::chrono::steady_clock::now();
+  auto application_end_time = std::chrono::high_resolution_clock::now();
   delete [] threads;
 
 
@@ -108,52 +108,74 @@ int main(int argc, char** argv)
   google::ShutdownGoogleLogging();
 #endif
 
-  auto worker_end_time = std::chrono::steady_clock::now();
+  auto worker_end_time = std::chrono::high_resolution_clock::now();
   auto application_time_us = std::chrono::duration_cast<microsecond>(application_end_time - start_time).count();
   auto total_time_us = std::chrono::duration_cast<microsecond>(worker_end_time - start_time).count();
 
-  oss << "\n" << g_iterations << " log entries took: [" << total_time_us / 1000000 << " s] to write to disk"<< std::endl;
-  oss << "[Application(" << number_of_threads << "_threads+overhead time for measurement):\t" << application_time_us/1000 << " ms]" << std::endl;
-  oss << "[Background thread to finish:\t\t\t\t" << total_time_us/1000 << " ms]" << std::endl;
+  oss << "\n" << number_of_threads << "*" << g_iterations << " log entries took: [" << total_time_us / us_to_s << " s] to write to disk" << std::endl;
+  oss << "[Application(" << number_of_threads << "_threads+overhead time for measurement):\t" << application_time_us/us_to_ms << " ms]" << std::endl;
+  oss << "[Background thread to finish:\t\t\t\t" << total_time_us/us_to_ms << " ms]" << std::endl;
   oss << "\nAverage time per log entry:" << std::endl;
   oss << "[Application: " << application_time_us/(number_of_threads*g_iterations) << " us]" << std::endl;
 
   for(size_t idx = 0; idx < number_of_threads; ++idx)
   {
-    std::vector<long long>& t_result = threads_result[idx];
-    oss << "[Application t" << idx+1 << " worst took: " <<  (*std::max_element(t_result.begin(), t_result.end())) / 1000 << " ms]" << std::endl;
+    std::vector<int64_t>& t_result = threads_result[idx];
+    auto worstUs = (*std::max_element(t_result.begin(), t_result.end()));
+    oss << "[Application t" << idx+1 << " worst took: " <<  worstUs / int64_t(1000) << " ms  (" << worstUs << " us)] " << std::endl;
   }
   writeTextToFile(g_measurement_dump,oss.str(), kAppend);
   std::cout << "Result can be found at:" << g_measurement_dump << std::endl;
 
   // now split the result in buckets of 10ms each so that it's obvious how the peaks go
-  std::vector<long long> all_measurements;
+  std::vector<int64_t> all_measurements;
   all_measurements.reserve(g_iterations * number_of_threads);
   for(size_t idx = 0; idx < number_of_threads; ++idx)
   {
-    std::vector<long long>& t_result = threads_result[idx];
+    std::vector<int64_t>& t_result = threads_result[idx];
     all_measurements.insert(all_measurements.end(), t_result.begin(), t_result.end());
   }
   delete [] threads_result; // finally get rid of them
 
   std::sort (all_measurements.begin(), all_measurements.end());
-  std::map<long long, long long> value_amounts;
-  // for(long long& idx : all_measurements) --- didn't work?!
+  std::map<int64_t, int64_t> value_amounts;
+  std::map<int64_t, int64_t> value_amounts_for_0ms_bucket;
+  
   for(auto iter = all_measurements.begin(); iter != all_measurements.end(); ++iter)
   {
-    auto value = (*iter)/1000; // convert to ms
-    //auto bucket=floor(value*10+0.5)/10;
-    ++value_amounts[value]; // asuming size_t is default 0 when initialized
+    auto value = (*iter)/us_to_ms; // convert to ms
+    ++value_amounts[value]; // asuming int64_t is default 0 when initialized
+    
+    if(0 == value) {
+       ++value_amounts_for_0ms_bucket[*iter];
+    }
   }
 
   oss.str("");
-  oss << "Number of values rounted to milliseconds and put to [millisecond bucket] were dumped to file: " << g_measurement_bucket_dump << std::endl;
-  oss << "Format:  bucket_of_ms, number_of_values_in_bucket\n\n" << std::endl;
+  oss << "Number of values rounded to milliseconds and put to [millisecond bucket] were dumped to file: " << g_measurement_bucket_dump << std::endl;
+  if(1 == value_amounts.size()) {
+     oss << "Format:  bucket of us inside bucket0 for ms\nFormat:bucket_of_ms, number_of_values_in_bucket\n\n" << std::endl;
+     oss << "\n";
+  }
+  else {
+     oss << "Format:bucket_of_ms, number_of_values_in_bucket\n\n" << std::endl;
+  }
   std::cout << oss.str() << std::endl;
 
-  for(auto iter = value_amounts.begin(); iter != value_amounts.end(); ++iter)
+  //
+  // If all values are for the 0ms bucket then instead show us buckets
+  //
+  if(1 == value_amounts.size()) {
+     oss << "\n\n***** Microsecond bucket measurement for all measurements that went inside the '0 millisecond bucket' ****\n";  
+     for(auto us_bucket: value_amounts_for_0ms_bucket) {
+        oss << us_bucket.first << "\t" << us_bucket.second << std::endl;
+     }
+     oss << "\n\n***** Millisecond bucket measurement ****\n";
+  }
+   
+  for(auto ms_bucket: value_amounts)
   {
-    oss << iter->first << "\t, " << iter->second << std::endl;
+    oss << ms_bucket.first << "\t, " << ms_bucket.second << std::endl;
   }
   writeTextToFile(g_measurement_bucket_dump,oss.str(), kAppend,  false);
 
