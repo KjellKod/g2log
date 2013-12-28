@@ -113,7 +113,7 @@ ENDIF ()
    # GENERIC STEPS
    # CODE SOURCES these +
    set(SRC_CPP ${LOG_SRC}/g2logworker.cpp ${LOG_SRC}/g2log.cpp ${LOG_SRC}/g2time.cpp)
-   set(SRC_H ${LOG_SRC}/g2logworker.h ${LOG_SRC}/g2log.h ${LOG_SRC}/crashhandler.h ${LOG_SRC}/g2time.h ${LOG_SRC}/g2future.h)
+   set(SRC_H ${LOG_SRC}/g2logworker.h ${LOG_SRC}/g2log.h ${LOG_SRC}/crashhandler.h ${LOG_SRC}/g2time.h ${LOG_SRC}/g2future.h ${LOG_SRC}/g2moveoncopy.hpp)
    set(SRC_FILES ${SRC_CPP} ${SRC_H} ${SRC_PLATFORM_SPECIFIC})
 
 
