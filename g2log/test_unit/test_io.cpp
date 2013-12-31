@@ -12,11 +12,6 @@
 #include <fstream>
 #include <cstdio>
 
-#ifdef __clang__
-#warning "Unit tests for Clang are disabled due to Clang's lack of C++11 features (future) on Linux"
-#endif
-
-#ifndef __clang__
 namespace
 {
    const int k_wait_time = 5; // 5s wait between LOG/CHECK FATAL till we say it's too long time
@@ -393,4 +388,3 @@ TEST(CHECK, CHECK_ThatWontThrow)
 	ASSERT_EQ(g_latest_fatal_message.message_, ""); // just to be obvious
 }
 
-#endif // clang

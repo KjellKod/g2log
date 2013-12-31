@@ -58,14 +58,14 @@ int main(int argc, char** argv)
 
   g2LogWorker logger(argv[0], path_to_log_file);
   g2::initializeLogging(&logger);
-#ifndef __clang__
+
   std::future<std::string> log_file_name = logger.logFileName();
   std::cout << "*** This is an example of g2log " << std::endl;
   std::cout << "*** It WILL exit by a FATAL trigger in the end" << std::endl;
   std::cout << "*** Please see the generated log and compare to " << std::endl;
   std::cout << "***    the code at g2log/test_example/main.cpp" << std::endl;
   std::cout << "\n*** Log file: [" << log_file_name.get() << "]\n\n" << std::endl;
-#endif
+
 
   LOGF(INFO, "Hi log %d", 123);
   LOG(INFO) << "Test SLOG INFO";

@@ -14,9 +14,6 @@
 #include "active.h"
 #include "g2moveoncopy.hpp"
 namespace g2 {
-
-#ifndef __clang__  // no/bad packaged_task future support for Clang on non-OSX platforms
-
 // Generic helper function to avoid repeating the steps for managing
 // asynchronous task job (by active object) that returns a future results
 // could of course be made even more generic if done more in the way of
@@ -39,7 +36,6 @@ std::future<typename std::result_of<Func()>::type> spawn_task(Func func, kjellko
  worker->send(MoveOnCopy<task_type>(std::move(task)));  
  return std::move(result);
 }
-#endif // clang
 
 } // end namespace g2
 #endif // G2FUTURE_H

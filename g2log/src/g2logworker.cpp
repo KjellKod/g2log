@@ -18,10 +18,7 @@
 #include <string>
 #include <chrono>
 #include <functional>
-
-#ifndef __clang__ 
 #include <future>
-#endif
 
 #include "active.h"
 #include "g2log.h"
@@ -297,7 +294,6 @@ void g2LogWorker::fatal(g2::internal::FatalMessage fatal_message)
   pimpl_->bg_->send(std::bind(&g2LogWorkerImpl::backgroundExitFatal, pimpl_.get(), fatal_message));
 }
 
-#ifndef __clang__
 std::future<std::string> g2LogWorker::changeLogFile(const std::string& log_directory)
 {
   kjellkod::Active* bgWorker = pimpl_->bg_.get();
@@ -314,6 +310,4 @@ std::future<std::string> g2LogWorker::logFileName()
   auto future_result = g2::spawn_task(bg_call ,bgWorker);
   return std::move(future_result);
 }
-
-#endif // clang
 

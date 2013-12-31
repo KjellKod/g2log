@@ -19,16 +19,6 @@
 #include "g2logworker.h"
 
 
-#ifdef __clang__
-#warning "Unit tests for Clang are disabled due to Clang's lack of C++11 features (future) on Linux"
-int main() {
- std::cerr << "Unit test disabled due to bad packaged_task/future support \n"
-              "For Clang on Linux" << std::flush;
- return 0;
-}
-
-#endif
-#ifndef __clang__
 namespace { // anonymous
 const char* name_path_1 = "./some_fake_DirectoryOrName_1_";
 const char* name_path_2 = "./some_fake_DirectoryOrName_3_";
@@ -197,5 +187,3 @@ int main(int argc, char *argv[])
   cleaner.addLogToClean(last_log_file);
   return return_value;
 }
-
-#endif // clang

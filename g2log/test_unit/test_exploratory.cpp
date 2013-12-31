@@ -15,7 +15,7 @@
 #include <memory>
 #include "g2time.h"
 #include "g2future.h"
-
+#include "g2moveoncopy.hpp"
 
 
 
@@ -49,13 +49,6 @@ ASSERT_TRUE(true); // no exception. all good
 }
 
 
-
-#ifdef __clang__
-#warning "Unit tests for Clang are disabled due to Clang's lack of C++11 features (future) on Linux"
-#endif
-
-
-#ifndef __clang__
 std::future<std::string> sillyFutureReturn()
 {
   std::packaged_task<std::string()> task([](){return std::string("Hello Future");}); // wrap the function
@@ -119,7 +112,7 @@ std::future<typename std::result_of<F()>::type> ObsoleteSpawnTask(F f)
   std::future<result_type> result = task.get_future();
 
   std::vector<std::function<void()>> vec;
-  vec.push_back(g2::PretendToBeCopyable<task_type>(std::move(task)));
+  vec.push_back(g2::MoveOnCopy<task_type>(std::move(task)));
   std::thread(std::move(vec.back())).detach();
   result.wait();
   return std::move(result);
@@ -163,7 +156,7 @@ namespace WORKING
     std::future<result_type> res = task.get_future();
 
     vec.push_back(
-      PretendToBeCopyable<task_type>(
+      MoveOnCopy<task_type>(
       std::move(task)));
 
     std::thread([]()
@@ -200,7 +193,7 @@ TEST(Yalla, Testar)
   ASSERT_TRUE(true);
 }
 
-#endif // clang
+
 
 
 
