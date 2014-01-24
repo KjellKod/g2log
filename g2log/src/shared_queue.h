@@ -36,8 +36,10 @@ public:
   shared_queue(){}
 
   void push(T item){
-    std::lock_guard<std::mutex> lock(m_);
-    queue_.push(item);
+    {
+      std::lock_guard<std::mutex> lock(m_);
+      queue_.push(item);
+    }
     data_cond_.notify_one();
   }
 
