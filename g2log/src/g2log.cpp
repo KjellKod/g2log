@@ -100,13 +100,26 @@ void initializeLogging(g2LogWorker *bgworker) {
 
 
 
-g2LogWorker* shutDownLogging()
+void  shutDownLogging()
 {
   std::lock_guard<std::mutex> lock(g_logging_init_mutex);
-  CHECK(internal::isLoggingInitialized());
-  g2LogWorker *backup = g_logger_instance;
   g_logger_instance = nullptr;
-  return backup;
+}
+
+
+      
+bool shutDownLoggingForActiveOnly(g2LogWorker* active) 
+{
+  if(internal::isLoggingInitialized() && nullptr != active  && 
+    (dynamic_cast<void*>(active) != dynamic_cast<void*>(g_logger_instance))) 
+  {
+     LOG(WARNING) << "\n\t\tShutting down logging, but the ID of the Logger is not the one that is active."
+                  << "\n\t\tHaving multiple instances of the g2::LogWorker is likely a BUG"
+                  << "\n\t\tEither way, this call to shutDownLogging was ignored";
+     return false;
+   }
+   shutDownLogging();
+   return true;
 }
 
 

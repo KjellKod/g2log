@@ -36,15 +36,12 @@
 #     ./g2log-FATAL-example
 #
 #
-#   Clang on Linux (untried on OSX)
-#   On Linux Clang does not yet fully support C++11 (only on OSX?)
-#   For that reason all functionality that involves asynch or future or packaged_task
-#       are disabled. Apart from that g2log works the same. If you want the full functionality 
-#       then please check the code for #ifndef __clang
-#   To compile it:
+#   Clang on Linux 
+#   From g2log/g2log
+#   mkdir build && cd build
 #   cmake -DCMAKE_CXX_COMPILER=clang++ ..
-#   You can use:   "VERBOSE=1 make" to make sure that you have all setup correctly on Clang
-#   "make -j"                        is my prefferred compilation option otherwise. 
+#   You can use:   "VERBOSE=1 make"  if you want to double-check settings otherwise just run
+#   "make -j"                       
 #
 # ============================================================================
 
@@ -238,14 +235,13 @@ ENDIF ()
 
 
    # 4. create the unit tests for g2log --- ONLY TESTED THE UNIT TEST ON LINUX.
-   #    NOT CLANG SUPPORTED!!!
    if (USE_G2LOG_UNIT_TEST)
      MESSAGE(" g2log unit testing option ON")
     # SETUP for GTEST
       set(GTEST_DIR ../3rdParty/gtest/gtest-1.7.0)
       set(GTEST_INCLUDE_DIRECTORIES ${GTEST_DIR}/include ${GTEST_DIR} ${GTEST_DIR}/src)
       include_directories(${GTEST_INCLUDE_DIRECTORIES})
-      add_library(gtest_170_lib ${GTEST_DIR}/src/gtest-all.cc) # ${GTEST_DIR}/src/gtest_main.cc)
+      add_library(gtest_170_lib ${GTEST_DIR}/src/gtest-all.cc) 
       set_target_properties(gtest_170_lib  PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_RTTI=0")
       enable_testing(true)
 

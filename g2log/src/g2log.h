@@ -153,10 +153,17 @@ void initializeLogging(g2LogWorker *logger);
 
 /** Shutdown the logging by making the pointer to the background logger to nullptr
  * The \ref pointer to the g2LogWorker is owned by the instantniater \ref initializeLogging
- * and is not deleted. By restoring the ptr to nullptr we can re-initialize it later again. This is
- * kept for test reasons and should normally not be used */
-g2LogWorker* shutDownLogging();
+ * and is not deleted. 
+ */
+void shutDownLogging();
 
+/** Same as the Shutdown above but called by the destructor of the LogWorker, thus ensuring that no further
+ *  LOG(...) calls can happen to  a non-existing LogWorker. 
+ *  @param active MUST BE the LogWorker initialized for logging. If it is not then this call is just ignored
+ *         and the logging continues to be active.
+ * @return true if the correct worker was given,. and shutDownLogging was called 
+*/
+bool shutDownLoggingForActiveOnly(g2LogWorker* active);
 
 // defined here but should't not have to be used outside the g2log
 namespace internal

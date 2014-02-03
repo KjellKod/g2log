@@ -227,6 +227,7 @@ void g2LogWorkerImpl::backgroundExitFatal(FatalMessage fatal_message)
   std::cerr << "g2log exiting after receiving fatal event" << std::endl;
   std::cerr << "Log file at: [" << log_file_with_path_ << "]\n" << std::endl << std::flush;
   filestream().close();
+  g2::shutDownLogging(); // only an initialized logger can recieve a fatal message. So shutting down logging now is fine.
   exitWithDefaultSignalHandler(fatal_message.signal_id_);
   perror("g2log exited after receiving FATAL trigger. Flush message status: "); // should never reach this point
 }
@@ -281,6 +282,7 @@ g2LogWorker::g2LogWorker(const std::string& log_prefix, const std::string& log_d
 g2LogWorker::~g2LogWorker()
 {
   pimpl_.reset();
+  g2::shutDownLoggingForActiveOnly(this);
   std::cerr << "\nExiting, log location: " << log_file_with_path_ << std::endl << std::flush;
 }
 
