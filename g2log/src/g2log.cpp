@@ -62,7 +62,7 @@ std::string splitFileName(const std::string& str)
    void saveToLogger(const g2::internal::LogEntry& log_entry) {
       // Uninitialized messages are ignored but does not CHECK/crash the logger  
       if (!g2::internal::isLoggingInitialized()) {
-         std::string err = {"LOGGER NOT INITIALIZED: " + log_entry};
+         std::string err("LOGGER NOT INITIALIZED: " + log_entry);
          std::call_once(g_set_first_uninitialized_flag, [&] { g_first_unintialized_msg = err;  });
             // dump to std::err all the non-initialized logs
             std::cerr << err << std::endl;
