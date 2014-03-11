@@ -10,18 +10,18 @@
 #include <csignal>
 #include <cstring>
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__)
-// or? gcc on windows I guess,. 
+// or? gcc on windows I guess,.
 #error "crashhandler_unix.cpp used but it's a windows system"
 #endif
 
 
-#include <unistd.h> 
+#include <unistd.h>
 #include <execinfo.h>
 
 #include <cxxabi.h>
 #include <cstdlib>
 
-#ifdef __clang__
+#if defined(__clang__) || defined(__APPLE__)
 #include <sys/ucontext.h>
 #else
 #include <ucontext.h>
