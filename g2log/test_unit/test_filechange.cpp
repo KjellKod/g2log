@@ -26,28 +26,6 @@ const char* name_path_2 = "./some_fake_DirectoryOrName_3_";
 g2LogWorker* g_logger_ptr = nullptr;
 
 
-bool isTextAvailableInContent(const std::string &total_text,std::string msg_to_find)
-{
-  std::string content(total_text);
-  size_t location = content.find(msg_to_find);
-  return (location != std::string::npos);
-}
-
-
-std::string readFileToText(std::string filename)
-{
-  std::ifstream in;
-  in.open(filename.c_str(),std::ios_base::in);
-  if(!in.is_open())
-  {
-    return ""; // error just return empty string - test will 'fault'
-  }
-  std::ostringstream oss;
-  oss << in.rdbuf();
-  std::string content(oss.str());
-  return content;
-}
-
 bool removeFile(std::string path_to_file)
 {
   return (0 == std::remove(path_to_file.c_str()));

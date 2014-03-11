@@ -14,7 +14,6 @@
 
 namespace
 {
-   const int k_wait_time = 5; // 5s wait between LOG/CHECK FATAL till we say it's too long time
    const std::string log_directory = "./";
 
    bool verifyContent(const std::string &total_text,std::string msg_to_find)
