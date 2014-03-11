@@ -82,7 +82,6 @@ IF ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
        set(PLATFORM_LINK_LIBRIES rt  c++abi)
    endif()
   set(CMAKE_CXX_FLAGS  "-Wall -std=c++11  -pthread -stdlib=libc++ -Wunused -D_GLIBCXX_USE_NANOSLEEP")
-  set(SRC_PLATFORM_SPECIFIC ${LOG_SRC}/crashhandler_unix.cpp)
 
 ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
    MESSAGE("")
@@ -96,9 +95,8 @@ ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
        set(PLATFORM_LINK_LIBRIES rt)
        set(CMAKE_CXX_FLAGS "-Wall -rdynamic -Wunused -std=c++11 -pthread -D_GLIBCXX_USE_NANOSLEEP")
    endif()
-   set(SRC_PLATFORM_SPECIFIC ${LOG_SRC}/crashhandler_unix.cpp)
 
-ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+ELSEIF(MSVC)
   # VC11 bug: http://code.google.com/p/googletest/issues/detail?id=408
   #          add_definition(-D_VARIADIC_MAX=10)
   #          https://github.com/anhstudios/swganh/pull/186/files
@@ -111,32 +109,28 @@ ELSEIF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
    MESSAGE("if cmake finishes OK, do 'msbuild g2log_by_kjellkod.sln /p:Configuration=Release'")
    MESSAGE("then run 'Release\\g2log-FATAL-example.exe'  or whatever performance test you feel like trying")
    MESSAGE("")
-   set(SRC_PLATFORM_SPECIFIC ${LOG_SRC}/crashhandler_win.cpp)
-ENDIF ()
+ENDIF()
 
 
    # GENERIC STEPS
-   # CODE SOURCES these +
-   set(SRC_CPP ${LOG_SRC}/g2logworker.cpp ${LOG_SRC}/g2log.cpp ${LOG_SRC}/g2time.cpp)
-   set(SRC_H ${LOG_SRC}/g2logworker.h ${LOG_SRC}/g2log.h ${LOG_SRC}/crashhandler.h ${LOG_SRC}/g2time.h ${LOG_SRC}/g2future.h ${LOG_SRC}/g2moveoncopy.hpp)
-   set(SRC_FILES ${SRC_CPP} ${SRC_H} ${SRC_PLATFORM_SPECIFIC})
+   file(GLOB SRC_FILES ${LOG_SRC}/*.h ${LOG_SRC}/*.hpp ${LOG_SRC}/*.cpp ${LOG_SRC}/*.ipp)
+   if(MSVC OR MINGW) 
+         list(REMOVE_ITEM SRC_FILES  ${LOG_SRC}/crashhandler_unix.cpp)
+   else()     
+         list(REMOVE_ITEM SRC_FILES  ${LOG_SRC}/crashhandler_win.cpp)
+   endif(MSVC OR MINGW)
 
-
-
-     # add a ActiveObject library
-   add_library(lib_activeobject ${LOG_SRC}/active.cpp ${LOG_SRC}/active.h ${LOG_SRC}/shared_queue.h)
-   set_target_properties(lib_activeobject PROPERTIES LINKER_LANGUAGE CXX)
-
-
-
-   # add a g2log library
-   include_directories(src)
+   set(SRC_FILES ${SRC_FILES} ${SRC_PLATFORM_SPECIFIC})
+ 
+   # Create the g2log library
    include_directories(${LOG_SRC})
-   MESSAGE("  LOG_SRC = : ${LOG_SRC}")
    MESSAGE("  g2logger files: [${SRC_FILES}]")
-   add_library(lib_g2logger  ${SRC_FILES})
+   add_library(lib_g2logger ${SRC_FILES})
    set_target_properties(lib_g2logger PROPERTIES LINKER_LANGUAGE CXX)
-   target_link_libraries(lib_g2logger lib_activeobject)
+   add_library(lib_g2logger_shared SHARED ${SRC_FILES})
+   set_target_properties(lib_g2logger_shared PROPERTIES LINKER_LANGUAGE CXX)
+
+
 
 
  
@@ -183,9 +177,9 @@ ENDIF ()
       MESSAGE(" g2log-FATAL-example option ON")
       include_directories (${DIR_EXAMPLE})
       add_executable(g2log-FATAL-example ${DIR_EXAMPLE}/main.cpp)
-      target_link_libraries(g2log-FATAL-example lib_activeobject lib_g2logger ${PLATFORM_LINK_LIBRIES})
+      target_link_libraries(g2log-FATAL-example  lib_g2logger ${PLATFORM_LINK_LIBRIES})
    endif (USE_SIMPLE_EXAMPLE)
-   # ===============================================================================================
+
 
 
    # 2. create the g2log's performance tests
@@ -197,13 +191,13 @@ ENDIF ()
                     ${DIR_PERFORMANCE}/main_threaded_mean.cpp ${DIR_PERFORMANCE}/performance.h)
       # Turn on G2LOG performance flag
       set_target_properties(g2log-performance-threaded_mean PROPERTIES COMPILE_DEFINITIONS "G2LOG_PERFORMANCE=1")
-      target_link_libraries(g2log-performance-threaded_mean lib_activeobject lib_g2logger ${PLATFORM_LINK_LIBRIES})
+      target_link_libraries(g2log-performance-threaded_mean  lib_g2logger ${PLATFORM_LINK_LIBRIES})
 
      # WORST CASE PERFORMANCE TEST
      add_executable(g2log-performance-threaded_worst ${DIR_PERFORMANCE}//main_threaded_worst.cpp ${DIR_PERFORMANCE}/performance.h)
      # Turn on G2LOG performance flag
      set_target_properties(g2log-performance-threaded_worst  PROPERTIES COMPILE_DEFINITIONS "G2LOG_PERFORMANCE=1")
-     target_link_libraries(g2log-performance-threaded_worst lib_activeobject lib_g2logger ${PLATFORM_LINK_LIBRIES})
+     target_link_libraries(g2log-performance-threaded_worst  lib_g2logger ${PLATFORM_LINK_LIBRIES})
    endif (USE_G2LOG_PERFORMANCE)
    # ===============================================================================================
 
@@ -219,13 +213,13 @@ ENDIF ()
        add_executable(google_glog-performance-threaded_mean 
                      ${DIR_PERFORMANCE}/main_threaded_mean.cpp ${DIR_PERFORMANCE}/performance.h)
        set_target_properties(google_glog-performance-threaded_mean  PROPERTIES COMPILE_DEFINITIONS "GOOGLE_GLOG_PERFORMANCE=1")
-       target_link_libraries(google_glog-performance-threaded_mean lib_activeobject ${GLOG_LIB} ${PLATFORM_LINK_LIBRIES})
+       target_link_libraries(google_glog-performance-threaded_mean  ${GLOG_LIB} ${PLATFORM_LINK_LIBRIES})
 
        # create the the GOOGLE MEAN_PERFORMANCE executable
        add_executable(google_glog-performance-threaded_worst 
                       ${DIR_PERFORMANCE}/main_threaded_worst.cpp ${DIR_PERFORMANCE}/performance.h)
        set_target_properties(google_glog-performance-threaded_worst  PROPERTIES COMPILE_DEFINITIONS "GOOGLE_GLOG_PERFORMANCE=1")
-       target_link_libraries(google_glog-performance-threaded_worst lib_activeobject  ${GLOG_LIB} ${PLATFORM_LINK_LIBRIES})
+       target_link_libraries(google_glog-performance-threaded_worst  ${GLOG_LIB} ${PLATFORM_LINK_LIBRIES})
     endif(UNIX)
 
          # GLOG on Linux is easy - but for Windows trickier,. and it doesn't work (as of yet)
@@ -258,19 +252,19 @@ ENDIF ()
       set_target_properties(g2log-unit_test PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_TR1_TUPLE=0")
       set_target_properties(g2log-unit_test PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_RTTI=0")
       set_target_properties(g2log-unit_test PROPERTIES COMPILE_FLAGS "-isystem -pthread ")
-      target_link_libraries(g2log-unit_test lib_activeobject lib_g2logger gtest_170_lib ${PLATFORM_LINK_LIBRIES})
+      target_link_libraries(g2log-unit_test  lib_g2logger gtest_170_lib ${PLATFORM_LINK_LIBRIES})
          
       add_executable(g2log-unit_test_exploratory ../test_main/test_main.cpp ${DIR_UNIT_TEST}/test_exploratory.cpp)
       set_target_properties(g2log-unit_test_exploratory PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_TR1_TUPLE=0")
       set_target_properties(g2log-unit_test_exploratory PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_RTTI=0")
       set_target_properties(g2log-unit_test_exploratory PROPERTIES COMPILE_FLAGS "-isystem -pthread ")
-      target_link_libraries(g2log-unit_test_exploratory lib_activeobject lib_g2logger gtest_170_lib ${PLATFORM_LINK_LIBRIES})
+      target_link_libraries(g2log-unit_test_exploratory  lib_g2logger gtest_170_lib ${PLATFORM_LINK_LIBRIES})
 
 
       add_executable(g2log-unit_test_filechange ${DIR_UNIT_TEST}/test_filechange.cpp)
       set_target_properties(g2log-unit_test_filechange PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_TR1_TUPLE=0")
       set_target_properties(g2log-unit_test_filechange PROPERTIES COMPILE_DEFINITIONS "GTEST_HAS_RTTI=0")
-      target_link_libraries(g2log-unit_test_filechange lib_activeobject lib_g2logger gtest_170_lib ${PLATFORM_LINK_LIBRIES})
+      target_link_libraries(g2log-unit_test_filechange  lib_g2logger gtest_170_lib ${PLATFORM_LINK_LIBRIES})
    endif (USE_G2LOG_UNIT_TEST)
 
 
