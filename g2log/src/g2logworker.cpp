@@ -63,6 +63,8 @@ std::string prefixSanityFix(std::string prefix)
   prefix.erase(std::remove( prefix.begin(), prefix.end(), '/'), prefix.end()); // '/'
   prefix.erase(std::remove( prefix.begin(), prefix.end(), '\\'), prefix.end()); // '\\'
   prefix.erase(std::remove( prefix.begin(), prefix.end(), '.'), prefix.end());  // '.'
+  prefix.erase(std::remove(prefix.begin(), prefix.end(), ':'), prefix.end()); // ':'
+      
   if(!isValidFilename(prefix))
   {
     return "";
