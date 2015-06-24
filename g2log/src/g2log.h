@@ -26,6 +26,7 @@
 #include <cstdarg>
 #include <chrono>
 #include <functional>
+#include <ctime>
 
 class g2LogWorker;
 
@@ -145,110 +146,123 @@ And here is possible output
   * give credit to the people in that project (you know who you are :) and I guess also for 'sentimental' reasons.
   * That a big influence was google's glog is just a happy concidence or subconscious choice. Either way g2log became the name for this logger.
   * --- Thanks for a great 2011 and good luck with 'g2' --- KjellKod */
-namespace g2
-{
+namespace g2 {
 /** Should be called at very first startup of the software with \ref g2LogWorker pointer. Ownership of the \ref g2LogWorker is
 * the responsibilkity of the caller */
-void initializeLogging(g2LogWorker *logger);
+void initializeLogging(g2LogWorker* logger);
 
 /** Shutdown the logging by making the pointer to the background logger to nullptr
  * The \ref pointer to the g2LogWorker is owned by the instantniater \ref initializeLogging
- * and is not deleted. 
+ * and is not deleted.
  */
 void shutDownLogging();
 
 /** Same as the Shutdown above but called by the destructor of the LogWorker, thus ensuring that no further
- *  LOG(...) calls can happen to  a non-existing LogWorker. 
+ *  LOG(...) calls can happen to  a non-existing LogWorker.
  *  @param active MUST BE the LogWorker initialized for logging. If it is not then this call is just ignored
  *         and the logging continues to be active.
- * @return true if the correct worker was given,. and shutDownLogging was called 
+ * @return true if the correct worker was given,. and shutDownLogging was called
 */
 bool shutDownLoggingForActiveOnly(g2LogWorker* active);
 
 // defined here but should't not have to be used outside the g2log
-namespace internal
-{
-  typedef const std::string& LogEntry;
-  bool isLoggingInitialized();     
+namespace internal {
+
+/// returns timepoint as std::time_t
+std::time_t systemtime_now();
+
+
+struct LogEntry {
+   LogEntry(std::string msg, std::time_t timestamp) : msg_(msg), timestamp_(timestamp) {}
+   LogEntry(const LogEntry& other): msg_(other.msg_), timestamp_(other.timestamp_) {}
+   LogEntry& operator=(const LogEntry& other) {
+      msg_ = other.msg_;
+      timestamp_ = other.timestamp_;
+      return *this;
+   }
+
+
+   std::string msg_;
+   std::time_t timestamp_;
+};
+
+bool isLoggingInitialized();
 
 /** Trigger for flushing the message queue and exiting the application
     A thread that causes a FatalMessage will sleep forever until the
     application has exited (after message flush) */
-struct FatalMessage
-{
-  enum FatalType {kReasonFatal, kReasonOS_FATAL_SIGNAL};
-  FatalMessage(std::string message, FatalType type, int signal_id);
-  ~FatalMessage(){}; 
-  FatalMessage& operator=(const FatalMessage& fatal_message);
+struct FatalMessage {
+   enum FatalType {kReasonFatal, kReasonOS_FATAL_SIGNAL};
+   FatalMessage(LogEntry message, FatalType type, int signal_id);
+   ~FatalMessage() {};
+   FatalMessage& operator=(const FatalMessage& fatal_message);
 
 
-  std::string message_;
-  FatalType type_;
-  int signal_id_;
+   LogEntry message_;
+   FatalType type_;
+   int signal_id_;
 };
 // Will trigger a FatalMessage sending
-struct FatalTrigger
-{
-  FatalTrigger(const FatalMessage& message);
-  ~FatalTrigger();
-  FatalMessage message_;
+struct FatalTrigger {
+   FatalTrigger(const FatalMessage& message);
+   ~FatalTrigger();
+   FatalMessage message_;
 };
 
 
 // Log message for 'printf-like' or stream logging, it's a temporary message constructions
-class LogMessage
-{
-  public:
-    LogMessage(const std::string &file, const int line, const std::string& function, const std::string &level);
-    virtual ~LogMessage(); // at destruction will flush the message
+class LogMessage {
+ public:
+   LogMessage(const std::string& file, const int line, const std::string& function, const std::string& level);
+   virtual ~LogMessage(); // at destruction will flush the message
 
-    std::ostringstream& messageStream(){return stream_;}
+   std::ostringstream& messageStream() {return stream_;}
 
-    // The __attribute__ generates compiler warnings if illegal "printf" format
-    // IMPORTANT: You muse enable the compiler flag '-Wall' for this to work!
-    // ref: http://www.unixwiz.net/techtips/gnu-c-attributes.html
-        //
-        //If the compiler does not support attributes, disable them
+   // The __attribute__ generates compiler warnings if illegal "printf" format
+   // IMPORTANT: You muse enable the compiler flag '-Wall' for this to work!
+   // ref: http://www.unixwiz.net/techtips/gnu-c-attributes.html
+   //
+   //If the compiler does not support attributes, disable them
 #ifndef __GNUC__
 #define  __attribute__(x)
 #endif
-    // Coder note: Since it's C++ and not C EVERY CLASS FUNCTION always get a first
-    // compiler given argument 'this' this must be supplied as well, hence '2,3'
-    // ref: http://www.codemaestro.com/reviews/18 -- ref KjellKod
-    void messageSave(const char *printf_like_message, ...)
-        __attribute__((format(printf,2,3) ));
+   // Coder note: Since it's C++ and not C EVERY CLASS FUNCTION always get a first
+   // compiler given argument 'this' this must be supplied as well, hence '2,3'
+   // ref: http://www.codemaestro.com/reviews/18 -- ref KjellKod
+   void messageSave(const char* printf_like_message, ...)
+   __attribute__((format(printf, 2, 3) ));
 
-  protected:
-    const std::string file_;
-    const int line_;
-    const std::string function_;
-    const std::string level_;
-    std::ostringstream stream_;
-    std::string log_entry_;
+ protected:
+   const std::string file_;
+   const int line_;
+   const std::string function_;
+   const std::string level_;
+   std::ostringstream stream_;
+   std::string log_entry_;
+   std::time_t timestamp_;
 };
 
 
 
 // 'Design-by-Contract' temporary messsage construction
-class LogContractMessage : public LogMessage
-{
-public:
-  LogContractMessage(const std::string &file, const int line,
-                     const std::string &function, const std::string &boolean_expression);
-  virtual ~LogContractMessage(); // at destruction will flush the message
+class LogContractMessage : public LogMessage {
+ public:
+   LogContractMessage(const std::string& file, const int line,
+                      const std::string& function, const std::string& boolean_expression);
+   virtual ~LogContractMessage(); // at destruction will flush the message
 
-protected:
-  const std::string expression_;
+ protected:
+   const std::string expression_;
 };
 
 
- /** By default the g2log will call g2LogWorker::fatal(...) which will
-   * abort() the system after flushing the logs to file. This makes unit
-   * test of FATAL level cumbersome. A work around is to change the
-   * 'fatal call'  which can be done here 
-   * 
-   *  The bool return values in the fatal_call is whether or not the fatal_call should */
-  void changeFatalInitHandlerForUnitTesting(std::function<void(FatalMessage) > fatal_call);
+/** By default the g2log will call g2LogWorker::fatal(...) which will
+  * abort() the system after flushing the logs to file. This makes unit
+  * test of FATAL level cumbersome. A work around is to change the
+  * 'fatal call'  which can be done here
+  *
+  *  The bool return values in the fatal_call is whether or not the fatal_call should */
+void changeFatalInitHandlerForUnitTesting(std::function<void(FatalMessage) > fatal_call);
 } // end namespace internal
 } // end namespace g2
 
