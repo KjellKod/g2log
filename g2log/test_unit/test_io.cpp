@@ -241,6 +241,22 @@ TEST(LogTest, GenericAsyncCall) {
 }
 
 
+TEST(LogTest, GenericAsyncCall_noargs) {
+   std::string file_content;
+   {
+
+      std::atomic<bool>  flag {false};
+      RestoreLogger logger;
+
+      auto threadID = []() { std::cout << "threadID : " << std::this_thread::get_id() << std::endl;};
+      threadID();
+      std::future<void> justWait = logger.logger_->genericAsyncCall(threadID);
+      justWait.wait();
+   }
+}
+
+
+
 
 // printf-type log
 TEST(LogTest, LOG_F) {
