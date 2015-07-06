@@ -15,7 +15,7 @@
 #include <memory>
 #include <future>
 #include <string>
-
+#include <functional>
 #include "g2log.h"
 
 struct g2LogWorkerImpl;
@@ -40,6 +40,12 @@ class g2LogWorker {
    /// returns filename with full path if successful, else empty string
    std::future<std::string> changeLogFile(const std::string& log_directory);
 
+   /// Does an independent action in FIFO order, compared to the normal LOG statements
+   /// Example: auto threadID = [] { std::cout << "thread id: " << std::this_thread::get_id() << std::endl; };
+   ///          auto call = logger.genericAsyncCall(threadID); 
+   ///          // this will print out the thread id of the background worker
+   std::future<void> genericAsyncCall(std::function<void()> f);
+
    /// Probably only needed for unit-testing or specific log management post logging
    /// request to get log name is processed in FIFO order just like any other background job.
    std::future<std::string> logFileName();
@@ -51,6 +57,9 @@ class g2LogWorker {
    g2LogWorker(const g2LogWorker&); // c++11 feature not yet in vs2010 = delete;
    g2LogWorker& operator=(const g2LogWorker&); // c++11 feature not yet in vs2010 = delete;
 };
+
+
+
 
 
 #endif // LOG_WORKER_H_

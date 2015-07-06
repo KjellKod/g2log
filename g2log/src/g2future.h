@@ -26,15 +26,14 @@ namespace g2 {
 //  auto future_msg = g2::spawn_task(msg_lambda, bgWorker.get());
 
 template <typename Func>
-std::future<typename std::result_of<Func()>::type> spawn_task(Func func, kjellkod::Active* worker)
-{
- typedef typename std::result_of<Func()>::type result_type;
- typedef std::packaged_task<result_type()> task_type;
- task_type task(std::move(func));
- std::future<result_type> result = task.get_future();
+std::future<typename std::result_of<Func()>::type> spawn_task(Func func, kjellkod::Active* worker) {
+   typedef typename std::result_of<Func()>::type result_type;
+   typedef std::packaged_task<result_type()> task_type;
+   task_type task(std::move(func));
+   std::future<result_type> result = task.get_future();
 
- worker->send(MoveOnCopy<task_type>(std::move(task)));  
- return std::move(result);
+   worker->send(MoveOnCopy<task_type>(std::move(task)));
+   return std::move(result);
 }
 
 } // end namespace g2

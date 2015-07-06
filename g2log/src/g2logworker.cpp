@@ -284,6 +284,16 @@ std::future<std::string> g2LogWorker::changeLogFile(const std::string& log_direc
    return std::move(future_result);
 }
 
+
+std::future<void> g2LogWorker::genericAsyncCall(std::function<void()> f) {
+   auto bgWorker = pimpl_->bg_.get();
+   auto future_result = g2::spawn_task(f, bgWorker);
+   return std::move(future_result);
+}
+
+
+
+
 std::future<std::string> g2LogWorker::logFileName() {
    kjellkod::Active* bgWorker = pimpl_->bg_.get();
    auto bg_call = [&]() {return pimpl_->backgroundFileName();};

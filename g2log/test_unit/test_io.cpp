@@ -215,6 +215,33 @@ TEST(Basics, DoNotShutdownActiveLogger) {
 }
 
 
+TEST(LogTest, GenericAsyncCall) {
+   std::string file_content;
+   {
+
+      std::atomic<bool>  flag {false};
+      RestoreLogger logger;
+      auto set_flag = [](std::atomic<bool>& flag) {
+         flag.store(true);
+      };
+
+      EXPECT_FALSE(flag.load());
+      std::function<void()> f_setflag = std::bind(set_flag, std::ref(flag));
+      
+      f_setflag();
+      EXPECT_TRUE(flag.load());
+      flag.store(false);
+ 
+
+      std::future<void> flagSet = logger.logger_->genericAsyncCall(f_setflag);
+      flagSet.wait();
+      EXPECT_TRUE(flag.load());
+
+   }
+}
+
+
+
 // printf-type log
 TEST(LogTest, LOG_F) {
    std::string file_content;
