@@ -113,7 +113,7 @@ bool openLogFile(const std::string& complete_file_with_path, std::ofstream& outs
    std::ostringstream ss_entry;
    //  Day Month Date Time Year: is written as "%a %b %d %H:%M:%S %Y" and formatted output as : Wed Sep 19 08:28:16 2012
    ss_entry << "\t\tg2log created log file at: " << g2::localtime_formatted(g2::systemtime_now(), "%a %b %d %H:%M:%S %Y") << "\n";
-   ss_entry << "\t\tLOG format: [YYYY/MM/DD hh:mm:ss uuu* LEVEL FILE:LINE] message\t\t (uuu*: microsecond counter since initialization of log worker)\n\n"; // TODO: if(header)
+   ss_entry << "\t\tLOG format: [YYYY/MM/DD hh:mm:ss uuu* LEVEL FILE:LINE] message\t\t (uuu*: microsecond counter since initialization of log worker)\n\n"; 
    outstream << ss_entry.str() << std::flush;
    outstream.fill('0');
    return true;
