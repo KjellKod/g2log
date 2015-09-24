@@ -1,3 +1,7 @@
+**2015 Update:**
+If you need more flexibility, custom formatting, writing your own loggins sinks, etc then you should try out g3log. 
+G3log is the successor of g2log. G3log can be found at [https://github.com/KjellKod/g3log](https://github.com/KjellKod/g3log)
+
 EXAMPLE USAGE OF G2LOG
 =======================
 Optional to use either streaming or printf-like syntax
