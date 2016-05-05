@@ -128,24 +128,24 @@ more details
     make
 
 --- Building on Linux/Clang ----
-   cd g2log
-   mkdir build_clang
-   cd build_clang
-   cmake -DCMAKE_CXX_COMPILER=clang++ ..
-   make
+    cd g2log
+    mkdir build_clang
+    cd build_clang
+    cmake -DCMAKE_CXX_COMPILER=clang++ ..
+    make
 
 
 --- Building on Windows ---
 Please use the Visual Studio 11 (2012) command prompt "Developer command prompt"
-   cd g2log
-   mkdir build
-  cd build
-  cmake -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 11" ..
-  msbuild g2log_by_kjellkod.sln /p:Configuration=Release
+    cd g2log
+    mkdir build
+    cd build
+    cmake -DCMAKE_BUILD_TYPE=Release -G "Visual Studio 11" ..
+    msbuild g2log_by_kjellkod.sln /p:Configuration=Release
   
 -- Test the test exectutable with 
-   (windows) Release\g2log-FATAL.exe 
-   or (Linux) ./g2log-FATAL
+    (windows) Release\g2log-FATAL.exe 
+    or (Linux) ./g2log-FATAL
 
 
       
