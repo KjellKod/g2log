@@ -137,8 +137,8 @@ more details
 
 
 --- Building on Windows ---
-
 Please use the Visual Studio 11 (2012) command prompt "Developer command prompt"
+
     cd g2log
     mkdir build
     cd build
@@ -146,6 +146,7 @@ Please use the Visual Studio 11 (2012) command prompt "Developer command prompt"
     msbuild g2log_by_kjellkod.sln /p:Configuration=Release
   
 -- Test the test exectutable with 
+
     (windows) Release\g2log-FATAL.exe 
     or (Linux) ./g2log-FATAL
 
