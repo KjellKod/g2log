@@ -128,6 +128,7 @@ more details
     make
 
 --- Building on Linux/Clang ----
+
     cd g2log
     mkdir build_clang
     cd build_clang
@@ -136,6 +137,7 @@ more details
 
 
 --- Building on Windows ---
+
 Please use the Visual Studio 11 (2012) command prompt "Developer command prompt"
     cd g2log
     mkdir build
