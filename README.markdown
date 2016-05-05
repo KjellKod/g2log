@@ -85,13 +85,13 @@ LATEST CHANGES
 * Complete threadsafe use of localtime for timestamp. (see code: g2time)
 * Runtime change of filename, request of filename. (see code g2logwoker g2future)
 * Tested on 
-  x86 Windows7: Visual Studio 2012 Desktop Express
-  x86 Ubuntu 11.04:  gcc 4.7.3
-  x64 Ubuntu 12...: gcc 4.7.2
-  x64 Windows7: Visual Studio 2012 Professional
 
-  NOTE: It does NOT work with "Visual Studio 11 Beta" (not as C++11 compliant 
-  as VS2012)
+    x86 Windows7: Visual Studio 2012 Desktop Express
+    x86 Ubuntu 11.04:  gcc 4.7.3
+    x64 Ubuntu 12...: gcc 4.7.2
+    x64 Windows7: Visual Studio 2012 Professional
+    NOTE: It does NOT work with "Visual Studio 11 Beta" (not as C++11 compliant 
+    as VS2012)
 
 
 
@@ -120,11 +120,12 @@ enable the creation of them in the g2log/CMakeLists.txt file. See that file for
 more details
 
 --- Building on Linux ---
-   cd g2log
-   mkdir build
-   cd build 
-   cmake ..
-   make
+
+    cd g2log
+    mkdir build
+    cd build 
+    cmake ..
+    make
 
 --- Building on Linux/Clang ----
    cd g2log
