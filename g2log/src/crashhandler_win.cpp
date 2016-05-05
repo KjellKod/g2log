@@ -28,7 +28,7 @@ void crashHandler(int signal_number)
 
     FatalMessage fatal_message(fatal_stream.str(),FatalMessage::kReasonOS_FATAL_SIGNAL, signal_number);
     FatalTrigger trigger(fatal_message);  std::ostringstream oss;
-    std::cerr << fatal_message.message_ << std::endl << std::flush;
+    std::cerr << fatal_message.message_.msg_ << std::endl << std::flush;
 } // scope exit - message sent to LogWorker, wait to die...
 } // end anonymous namespace
 
