@@ -68,9 +68,9 @@ The code is given for free as public domain. This gives the option to change, us
  and do whatever with it, no strings attached.
 
 8. The stable version of g2log is available at https://bitbucket.org/KjellKod/g2log
-   The in-development g2log where new features are tried out is available at 
-   https://bitbucket.org/KjellKod/g2log-dev ongoing and released features can be   
-   seen at https://bitbucket.org/KjellKod/g2log-dev/wiki/Home
+   G3log is the recommended logger in the "g2log-g3log" family. https://github.com/KjellKod/g3log
+   G2log is kept alive here at bitbucket due to a demand for a logger in an environent where 
+   the latest compiler support for C++11 and newer is available. 
 
 
 
