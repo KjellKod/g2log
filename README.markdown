@@ -4,7 +4,10 @@ G3log is the successor of g2log. G3log can be found at [https://github.com/Kjell
 
 **2016 Update:**
 Please note that for Windows you need VS 2013 or newer.
-Ref: [https://bitbucket.org/KjellKod/g2log/issues/11/error](VS 2012 issue)
+Ref: [VS 2012](https://bitbucket.org/KjellKod/g2log/issues/11/error)
+
+
+
 EXAMPLE USAGE OF G2LOG
 =======================
 Optional to use either streaming or printf-like syntax
