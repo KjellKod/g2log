@@ -1,3 +1,8 @@
+**2021 Update**
+While you are free to use g2log I am mainly keeping it here as an archived open source repo. Most of the community has moved to G3log and I recommend you do to. 
+I am not planning to address issues for g2log. 
+
+
 **2015 Update:**
 If you need more flexibility, custom formatting, writing your own loggins sinks, etc then you should try out g3log. 
 G3log is the successor of g2log. G3log can be found at [https://github.com/KjellKod/g3log](https://github.com/KjellKod/g3log)
