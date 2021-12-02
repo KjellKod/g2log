@@ -1,4 +1,5 @@
-**2021 Update**
+*2021 Update*
+
 While you are free to use g2log I am mainly keeping it here as an archived open source repo. Most of the community has moved to G3log and I recommend you do to. 
 I am not planning to address issues for g2log. 
 
